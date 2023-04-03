@@ -1,0 +1,30 @@
+{
+  "name": "starknet-bridge",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "keywords": [],
+  "author": "d4rk444",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "console-stamp": "^3.1.0",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
+    "mathjs": "^11.5.0",
+    "readline-sync": "^1.4.10",
+    "tools-d4rk444": "^1.2.7"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d4rk4444/starknet-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/d4rk4444/starknet-bridge/issues"
+  },
+  "homepage": "https://github.com/d4rk4444/starknet-bridge#readme"
+}
