@@ -9,7 +9,7 @@ import { sendEVMTX,
     privateToAddress,
     estimateInvokeMaxFee,
     estimateMsgFee } from 'tools-d4rk444/web3.js';
-import { dataBridgeETHToStarknetAmount } from 'tools-d4rk444/bridge.js';
+import { dataBridgeETHToStarknetAmount, dataBridgeETHFromStarknet, dataWithdrawFromBridge } from 'tools-d4rk444/bridge.js';
 import { subtract, multiply, divide, add } from 'mathjs';
 import fs from 'fs';
 import readline from 'readline-sync';
@@ -61,8 +61,69 @@ const bridgeETHToStarknet = async(privateKeyEthereum, privateKeyStarknet) => {
         });
         await timeout(pauseTime);
     } catch (err) {
-        console.log(err);
-        logger.log(err);
+        logger.log(err.data.message);
+        throw new Error(err.data.message);
+    }
+}
+
+const bridgeETHFromStarknet = async(privateKeyEthereum, privateKeyStarknet) => {
+    const addressEthereum = privateToAddress(privateKeyEthereum);
+    const addressStarknet = await privateToStarknetAddress(privateKeyStarknet);
+    let isReady;
+
+    while(!isReady) {
+        console.log(chalk.yellow(`Bridge ETH to Ethereum`));
+        logger.log(`Bridge ETH to Ethereum`);
+        await getAmountTokenStark(addressStarknet, chainContract.Starknet.ETH, chainContract.Starknet.ETHAbi).then(async (res) => {
+            if (Number(res) < 0.001 * 10**18) { 
+                console.log(chalk.red('Not enough ETH'));
+                logger.log('Not enough ETH');
+            };
+
+            await dataBridgeETHFromStarknet(addressEthereum, 1).then(async(payload) => {
+                await estimateInvokeMaxFee(payload, privateKeyStarknet).then(async(maxFee) => {
+                    const randomAmount = generateRandomAmount(2 * 10**12, 5 * 10**12, 0);
+                    const amountETH = subtract( subtract(res, maxFee), randomAmount);
+                    payload = await dataBridgeETHFromStarknet(addressEthereum, amountETH);
+                    try {
+                        await sendTransactionStarknet(payload, privateKeyStarknet);
+                        fs.writeFileSync("amountBridge.txt", `${amountETH}\n`, { flag: 'a+' });
+                        isReady = true;
+                        await timeout(pauseTime);
+                    } catch (err) {
+                        logger.log(err.data.message);
+                        throw new Error(err.data.message);
+                    };
+                });
+            });
+        });
+    }
+}
+
+const withdrawETHFromBridge = async(amountETH, privateKeyEthereum) => {
+    const addressEthereum = privateToAddress(privateKeyEthereum);
+
+    console.log(chalk.yellow(`Withdraw ${amountETH / 10**18}ETH from Stargate`));
+    logger.log(`Withdraw ${amountETH / 10**18}ETH from Stargate`);
+    try {
+        await dataWithdrawFromBridge(rpc.Ethereum, amountETH, addressEthereum).then(async(res) => {
+            await getGasPriceEthereum().then(async(fee) => {
+                await sendEVMTX(rpc.Ethereum,
+                    2,
+                    res.estimateGas,
+                    '0',
+                    (parseInt(multiply(fee.maxFee, 1.15))).toString(),
+                    fee.maxPriorityFee,
+                    chainContract.Ethereum.StarknetBridge,
+                    null,
+                    res.encodeABI,
+                    privateKeyEthereum);
+            });
+        });
+        await timeout(pauseTime);
+    } catch (err) {
+        logger.log(err.data.message);
+        throw new Error(err.data.message);
     }
 }
 
@@ -77,9 +138,12 @@ const getStarknetAddress = async(privateKeyStarknet) => {
     const stage = [
         'Bridge to Starknet',
         'Deploy Account',
+        'Bridge to Ethereum',
+        'Withdraw ETH from Starkgate',
         'Get Starknet Address',
     ];
-
+    
+    console.log(chalk.magenta('Created by @d4rk444'));
     const index = readline.keyInSelect(stage, 'Choose stage!');
     if (index == -1) { process.exit() };
     console.log(chalk.green(`Start ${stage[index]}`));
@@ -97,6 +161,11 @@ const getStarknetAddress = async(privateKeyStarknet) => {
             await bridgeETHToStarknet(walletETH[i], walletSTARK[i]);
         } else if (stage[index] == stage[1]) {
             await deployStarknetWallet(walletSTARK[i]);
+        } else if (stage[index] == stage[2]) {
+            await bridgeETHFromStarknet(walletETH[i], walletSTARK[i]);
+        } else if (stage[index] == stage[2]) {
+            const amountBridge = parseFile('amountBridge.txt');
+            await withdrawETHFromBridge(amountBridge[i], walletETH[i]);
         } else if (stage[index] == stage[2]) {
             await getStarknetAddress(walletSTARK[i]);
         }

@@ -1,12 +1,14 @@
 # starknet-bridge
-Скрипт для моста Stargate в сеть Starknet.
+Скрипт для моста Starkgate в сеть Starknet и обратно.
 
 ## Описание
 Описание всех функций скрипта      
 
-1. Мост с Mainet в Starknet [*Использует Starkgate и текущий gasPrice в сети*]   
+1. Мост с Ethereum в Starknet [*Использует Starkgate и текущий gasPriceMax в сети*]   
 2. Deploy нового аккаунта [*Использует немного ETH*]
-3. Выводит ваш Starknet адрес
+3. Мост с Starknet в Ethereum [*Использует Starkgate*]
+4. Клейм ETH в Starkgate [*Записывает сумму ETH в файл amountBridge.txt*]
+5. Выводит ваш Starknet адрес [*Берет сумму с файла amountBridge.txt*] **Удалите этот файл после использования функции!!!**
 0. Отмена
     
 ## Установка
@@ -38,3 +40,5 @@ npm i
 ```
 node index
 ```
+
+*Created by d4rk444 Telegram @d4rk444. Writing scripts to automate blockchain actions*
